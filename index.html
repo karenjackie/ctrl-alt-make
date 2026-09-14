@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Make Connections | Ctrl Alt Make</title>
+<style>
+  :root{
+    --bg:#07090d;
+    --panel:#0d1118;
+    --tile:#0b1017;
+    --ink:#f3f7fb;
+    --muted:#7f8ba0;
+    --cyan:#18c8ff;
+    --cyan2:#0a7da2;
+    --yellow:#ffd84a;
+    --bad:#ff5f57;
+    --line:#233041;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:radial-gradient(circle at 50% -20%,#192333 0,#0b0f16 34%,#07090d 76%);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
+  body{min-height:100vh;overflow-x:hidden}
+  .wrap{width:min(760px,96vw);margin:0 auto;padding:16px 10px 22px}
+  header{text-align:center;margin-bottom:10px}
+  .kicker{font-size:.68rem;letter-spacing:.24em;color:var(--muted);font-weight:800;text-transform:uppercase}
+  .title{font-size:clamp(2rem,5vw,3.55rem);line-height:.9;margin:5px 0 7px;font-weight:950;letter-spacing:-.035em;text-transform:uppercase}
+  .sub{font-size:.78rem;color:var(--muted);letter-spacing:.13em;font-weight:800;text-transform:uppercase}
+
+  .status{display:flex;justify-content:space-between;gap:14px;align-items:center;margin:10px 2px 8px;font-size:.72rem;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#c6d0df}
+  .mistakes{display:flex;align-items:center;gap:8px}
+  .dots{display:inline-flex;gap:5px}
+  .dot{width:11px;height:11px;border-radius:50%;background:var(--cyan);box-shadow:0 0 9px rgba(24,200,255,.65)}
+  .dot.used{background:#273244;box-shadow:none}
+
+  .solved{display:grid;gap:7px;margin-bottom:8px}
+  .solved-card{border-radius:10px;padding:10px 12px;background:var(--yellow);color:#0c0c0c;text-align:center;animation:drop .22s ease}
+  .solved-card strong{display:block;font-size:.92rem;letter-spacing:.13em;text-transform:uppercase;margin-bottom:2px}
+  .solved-card span{font-size:.74rem;font-weight:900;letter-spacing:.035em;text-transform:uppercase;line-height:1.3}
+  @keyframes drop{from{transform:translateY(-5px);opacity:.35}to{transform:none;opacity:1}}
+
+  .tray{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:8px 0 9px}
+  .slot{height:54px;border:2px dashed #30445a;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#60718a;font-weight:950;text-align:center;padding:5px;font-size:.69rem;line-height:1.05;text-transform:uppercase;background:rgba(8,12,18,.42)}
+  .slot.filled{border-style:solid;border-color:#7be5ff;color:#061018;background:var(--cyan);cursor:pointer;box-shadow:0 5px 14px rgba(24,200,255,.22);animation:pop .14s ease}
+  @keyframes pop{50%{transform:scale(1.025)}}
+
+  .board{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  .tile{height:72px;border:2px solid var(--cyan);border-radius:9px;padding:7px 6px;background:linear-gradient(180deg,#0c1118 0,#090d13 100%);color:var(--cyan);font-weight:950;font-size:clamp(.69rem,1.45vw,.84rem);line-height:1.02;text-transform:uppercase;cursor:pointer;letter-spacing:.02em;box-shadow:inset 0 0 0 1px rgba(24,200,255,.04);transition:transform .08s,border-color .08s,background .08s}
+  .tile:hover{transform:translateY(-1px);background:#0e1620;border-color:#48d6ff}
+  .tile:active{transform:translateY(1px)}
+
+  .controls{display:flex;justify-content:center;gap:9px;margin:12px 0 2px}
+  .control{background:transparent;color:var(--cyan);border:2px solid var(--cyan);border-radius:999px;padding:7px 17px;font-size:.72rem;font-weight:950;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+  .control:hover{background:#0e1822}
+  .control:disabled{opacity:.35;cursor:default}
+  .message{text-align:center;min-height:20px;font-size:.72rem;font-weight:950;letter-spacing:.13em;text-transform:uppercase;margin-top:7px}
+  .message.bad{color:var(--bad)}
+  .message.good{color:var(--yellow)}
+
+  .win{text-align:center;border:1px solid var(--line);border-radius:12px;padding:16px 12px;margin-top:10px;background:#0c1016}
+  .win h2{font-size:1.45rem;margin:0 0 4px;text-transform:uppercase}
+  .win p{color:#a7b2c2;margin:0;font-size:.77rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+  .hidden{display:none!important}
+  footer{text-align:center;color:#48566a;font-size:.62rem;letter-spacing:.12em;font-weight:800;text-transform:uppercase;margin-top:10px}
+  .win-actions{display:flex;justify-content:center;gap:9px;margin-top:12px;flex-wrap:wrap}
+  .remix{margin-top:12px;border:1px solid var(--line);border-radius:14px;padding:16px;background:#0c1016}
+  .remix h2{margin:0 0 5px;text-align:center;font-size:1.35rem;letter-spacing:.08em;text-transform:uppercase}
+  .remix-intro{text-align:center;color:#8d99aa;font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin:0 0 14px}
+  .field{display:grid;gap:7px;margin:14px auto 0;max-width:520px}
+  .field label{font-size:.66rem;font-weight:950;letter-spacing:.12em;text-transform:uppercase;color:#b9c4d4;text-align:center}
+  .field input{width:100%;border:2px solid var(--cyan);border-radius:10px;background:#080c12;color:var(--ink);padding:13px 14px;font:900 .9rem Arial,Helvetica,sans-serif;text-transform:uppercase;outline:none;text-align:center}
+  .field input:focus{box-shadow:0 0 0 3px rgba(24,200,255,.08)}
+  .builder-actions{display:flex;justify-content:center;gap:9px;margin-top:13px;flex-wrap:wrap}
+  .builder-message{text-align:center;min-height:18px;color:#aeb8c6;font-size:.68rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-top:10px;line-height:1.4}
+  .examples{text-align:center;color:#647287;font-size:.63rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-top:10px}
+
+  @media (max-width:620px){
+    .wrap{width:min(100%,620px);padding:12px 7px 18px}
+    .title{font-size:2.2rem}
+    .sub{font-size:.67rem}
+    .board,.tray{gap:5px}
+    .tile{height:64px;font-size:.62rem;padding:5px 3px}
+    .slot{height:48px;font-size:.6rem;padding:4px 2px}
+    .status{font-size:.62rem}
+    .solved-card strong{font-size:.78rem}
+    .solved-card span{font-size:.63rem}
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <div class="kicker">CTRL ALT MAKE PRESENTS</div>
+    <h1 class="title">1970s CLASSIC ROCK</h1>
+    <div class="sub">PUZZLE 003 • FIND FOUR THAT BELONG TOGETHER</div>
+  </header>
+
+  <div class="status">
+    <div id="progress">0 / 4 GROUPS</div>
+    <div class="mistakes">MISTAKES REMAINING <span class="dots" id="dots"></span></div>
+  </div>
+
+  <section id="solved" class="solved" aria-live="polite"></section>
+  <section id="tray" class="tray" aria-label="SELECTED TILES"></section>
+  <section id="board" class="board" aria-label="GAME BOARD"></section>
+
+  <div class="controls">
+    <button class="control" id="shuffle">SHUFFLE</button>
+    <button class="control" id="clear">CLEAR</button>
+  </div>
+  <div id="message" class="message" aria-live="polite"></div>
+
+  <section id="win" class="win hidden">
+    <h2 id="finish-title">🎸 YOU GOT ’EM ALL</h2>
+    <p id="win-copy">PUZZLE 001 SOLVED</p>
+    <div class="win-actions">
+      <button class="control" id="play-again">PLAY AGAIN</button>
+      <button class="control" id="remix-open">REMIX THIS GAME</button>
+    </div>
+  </section>
+
+  <section id="remix" class="remix hidden">
+    <h2>REMIX THIS GAME</h2>
+    <p class="remix-intro">KEEP THE ENGINE. CHANGE THE UNIVERSE.</p>
+    <div class="field">
+      <label for="theme">WHAT SHOULD WE REMIX IT INTO?</label>
+      <input id="theme" maxlength="50" placeholder="TYPE YOUR THEME">
+    </div>
+    <div class="examples">TRY A REMIX PACK: OCEAN LIFE • 80S MOVIES • STAR TREK • BASEBALL • SPACE</div>
+    <div class="builder-actions">
+      <button class="control" id="remix-cancel">CANCEL</button>
+      <button class="control" id="remix-play">REMIX IT</button>
+    </div>
+    <div id="builder-message" class="builder-message"></div>
+  </section>
+
+  <footer id="footer">CTRL ALT MAKE • 1970s CLASSIC ROCK • PUZZLE 003</footer>
+</main>
+
+<script>
+// CTRL ALT MAKE • MAKE CONNECTIONS • RELEASE 1.0 • SEPTEMBER 2026
+const PUZZLE_LIBRARY = {
+  '1970S CLASSIC ROCK': [
+    {id:'001',universe:'1970s CLASSIC ROCK',maxMistakes:4,groups:[
+      {id:'womannames',category:'Songs Named for Women',items:['Layla','Angie','Roxanne','Maggie May']},
+      {id:'placebands',category:'Bands Named for Places',items:['Boston','Chicago','Kansas','America']},
+      {id:'womansongs',category:'Songs with “Woman” in the Title',items:['American Woman','Witchy Woman','Black Magic Woman','Woman from Tokyo']},
+      {id:'onewordbands',category:'One-Word Band Names',items:['Queen','Heart','Rush','Journey']}
+    ]},
+    {id:'002',universe:'1970s CLASSIC ROCK',maxMistakes:4,groups:[
+      {id:'albums',category:'1970s Albums',items:['Rumours','Hotel California','Born to Run','The Wall']},
+      {id:'zeppelin',category:'Led Zeppelin Members',items:['Plant','Page','Bonham','Jones']},
+      {id:'colors',category:'Bands with Colors in Their Names',items:['Pink Floyd','Deep Purple','Black Sabbath','Blue Öyster Cult']},
+      {id:'queen',category:'Queen Songs',items:['Killer Queen','Somebody to Love','We Will Rock You','Bohemian Rhapsody']}
+    ]},
+    {id:'003',universe:'1970s CLASSIC ROCK',maxMistakes:4,groups:[
+      {id:'blacktitles',category:'Songs with “Black” in the Title',items:['Black Dog','Black Betty','Black Water','Black Magic Woman']},
+      {id:'fleetwood',category:'Fleetwood Mac Songs',items:['Dreams','Rhiannon','The Chain','Go Your Own Way']},
+      {id:'animalalbums',category:'1970s Albums with Animals in the Title',items:['Animals','Bat Out of Hell','Fly Like an Eagle','Cat Scratch Fever']},
+      {id:'brotherbands',category:'Bands Featuring Brothers',items:['Allman Brothers Band','AC/DC','Van Halen','Bee Gees']}
+    ]}
+  ],
+  'OCEAN LIFE': [
+    {id:'001',universe:'OCEAN LIFE',maxMistakes:4,groups:[
+      {id:'cephalopods',category:'Cephalopods',items:['Octopus','Squid','Cuttlefish','Nautilus']},
+      {id:'sharks',category:'Sharks',items:['Hammerhead','Mako','Tiger','Thresher']},
+      {id:'mammals',category:'Marine Mammals',items:['Dolphin','Manatee','Orca','Walrus']},
+      {id:'reef',category:'Reef Fish',items:['Clownfish','Parrotfish','Tang','Angelfish']}
+    ]},
+    {id:'002',universe:'OCEAN LIFE',maxMistakes:4,groups:[
+      {id:'whales',category:'Whales',items:['Humpback','Blue','Beluga','Sperm']},
+      {id:'turtles',category:'Sea Turtles',items:['Loggerhead','Leatherback','Hawksbill','Green']},
+      {id:'jellies',category:'Jellyfish',items:['Moon','Lion’s Mane','Box','Cannonball']},
+      {id:'shore',category:'Tide-Pool Creatures',items:['Anemone','Barnacle','Limpet','Sea Star']}
+    ]}
+  ],
+  '80S MOVIES': [
+    {id:'001',universe:'80S MOVIES',maxMistakes:4,groups:[
+      {id:'spielberg',category:'Directed by Steven Spielberg',items:['E.T.','The Color Purple','Empire of the Sun','Indiana Jones and the Last Crusade']},
+      {id:'1984',category:'Released in 1984',items:['Ghostbusters','Footloose','Gremlins','Beverly Hills Cop']},
+      {id:'ringwald',category:'Molly Ringwald Movies',items:['Sixteen Candles','The Breakfast Club','Pretty in Pink','For Keeps']},
+      {id:'future',category:'Time-Travel Movies',items:['Back to the Future','Bill & Ted’s Excellent Adventure','The Terminator','Peggy Sue Got Married']}
+    ]},
+    {id:'002',universe:'80S MOVIES',maxMistakes:4,groups:[
+      {id:'cruise',category:'Tom Cruise Movies',items:['Top Gun','Risky Business','Rain Man','Cocktail']},
+      {id:'murphy',category:'Eddie Murphy Movies',items:['Trading Places','Beverly Hills Cop','Coming to America','48 Hrs.']},
+      {id:'hughes',category:'John Hughes Movies',items:['The Breakfast Club','Ferris Bueller’s Day Off','Planes, Trains and Automobiles','Uncle Buck']},
+      {id:'fantasy',category:'Fantasy Adventures',items:['Labyrinth','Willow','The NeverEnding Story','The Dark Crystal']}
+    ]}
+  ],
+  'STAR TREK': [
+    {id:'001',universe:'STAR TREK',maxMistakes:4,groups:[
+      {id:'captains',category:'Starfleet Captains',items:['Kirk','Picard','Janeway','Sisko']},
+      {id:'species',category:'Species',items:['Vulcan','Klingon','Ferengi','Bajoran']},
+      {id:'ships',category:'Starships',items:['Enterprise','Voyager','Defiant','Discovery']},
+      {id:'doctors',category:'Doctors',items:['McCoy','Crusher','Bashir','Phlox']}
+    ]},
+    {id:'002',universe:'STAR TREK',maxMistakes:4,groups:[
+      {id:'first',category:'First Officers',items:['Spock','Riker','Chakotay','Kira']},
+      {id:'engineers',category:'Engineers',items:['Scotty','La Forge','Torres','O’Brien']},
+      {id:'android',category:'Artificial Life',items:['Data','Lore','Soji','The Doctor']},
+      {id:'villains',category:'Recurring Adversaries',items:['Q','Khan','Dukat','Borg Queen']}
+    ]}
+  ],
+  'BASEBALL': [
+    {id:'001',universe:'BASEBALL',maxMistakes:4,groups:[
+      {id:'positions',category:'Infield Positions',items:['First Base','Second Base','Shortstop','Third Base']},
+      {id:'ny',category:'New York Baseball',items:['Yankees','Mets','Dodgers','Giants']},
+      {id:'aleast',category:'AL East Rivals of the Yankees',items:['Orioles','Blue Jays','Red Sox','Rays']},
+      {id:'pitch',category:'Pitch Types',items:['Slider','Curveball','Changeup','Sinker']}
+    ]},
+    {id:'002',universe:'BASEBALL',maxMistakes:4,groups:[
+      {id:'reachbase',category:'Ways to Reach Base',items:['Single','Walk','Error','Hit by Pitch']},
+      {id:'stats',category:'Batting Stats',items:['Average','On-Base Percentage','Slugging','OPS']},
+      {id:'pitch2',category:'Pitch Types',items:['Fastball','Cutter','Splitter','Knuckleball']},
+      {id:'gear',category:'Baseball Gear',items:['Glove','Bat','Helmet','Cleats']}
+    ]}
+  ],
+  'SPACE': [
+    {id:'001',universe:'SPACE',maxMistakes:4,groups:[
+      {id:'gas',category:'Giant Planets',items:['Jupiter','Saturn','Uranus','Neptune']},
+      {id:'moons',category:'Moons',items:['Europa','Titan','Phobos','Triton']},
+      {id:'missions',category:'NASA Programs',items:['Mercury','Gemini','Apollo','Artemis']},
+      {id:'dwarf',category:'Dwarf Planets',items:['Pluto','Ceres','Eris','Haumea']}
+    ]},
+    {id:'002',universe:'SPACE',maxMistakes:4,groups:[
+      {id:'inner',category:'Inner Planets',items:['Mercury','Venus','Earth','Mars']},
+      {id:'moons2',category:'Moons of Jupiter',items:['Io','Europa','Ganymede','Callisto']},
+      {id:'stars',category:'Bright Stars',items:['Sirius','Vega','Rigel','Betelgeuse']},
+      {id:'telescopes',category:'Space Telescopes',items:['Hubble','Webb','Kepler','Spitzer']}
+    ]}
+  ]
+};
+
+let currentTheme='1970S CLASSIC ROCK';
+let currentPuzzleIndex=2;
+let PUZZLE=structuredClone(PUZZLE_LIBRARY[currentTheme][currentPuzzleIndex]);
+
+function validatePuzzle(p){
+  if(p.groups.length!==4) throw new Error('Puzzle must contain exactly four groups.');
+  const all=p.groups.flatMap(g=>g.items);
+  if(p.groups.some(g=>g.items.length!==4)) throw new Error('Every group must contain exactly four items.');
+  if(all.length!==16 || new Set(all.map(x=>x.toLowerCase())).size!==16) throw new Error('Puzzle must contain 16 unique items.');
+}
+validatePuzzle(PUZZLE);
+
+let groupForItem = new Map();
+PUZZLE.groups.forEach(g=>g.items.forEach(item=>groupForItem.set(item,g.id)));
+let remaining = PUZZLE.groups.flatMap(g=>g.items);
+let selected=[];
+let solvedIds=[];
+let mistakes=0;
+let locked=false;
+
+const board=document.getElementById('board');
+const tray=document.getElementById('tray');
+const solved=document.getElementById('solved');
+const message=document.getElementById('message');
+const dots=document.getElementById('dots');
+const progress=document.getElementById('progress');
+const win=document.getElementById('win');
+
+function shuffleArray(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+remaining=shuffleArray([...remaining]);
+
+function render(){
+  progress.textContent=`${solvedIds.length} / 4 GROUPS`;
+  dots.innerHTML='';
+  for(let i=0;i<PUZZLE.maxMistakes;i++){
+    const d=document.createElement('span');
+    d.className='dot'+(i < PUZZLE.maxMistakes-mistakes ? '' : ' used');
+    dots.appendChild(d);
+  }
+
+  tray.innerHTML='';
+  for(let i=0;i<4;i++){
+    const s=document.createElement('div');
+    s.className='slot'+(selected[i]?' filled':'');
+    s.textContent=selected[i]||'';
+    if(selected[i]) s.onclick=()=>unselect(selected[i]);
+    tray.appendChild(s);
+  }
+
+  board.innerHTML='';
+  remaining.filter(x=>!selected.includes(x)).forEach(item=>{
+    const b=document.createElement('button');
+    b.className='tile';
+    b.textContent=item;
+    b.onclick=()=>select(item);
+    board.appendChild(b);
+  });
+}
+
+function select(item){
+  if(locked||selected.length>=4) return;
+  selected.push(item);
+  render();
+  if(selected.length===4){
+    locked=true;
+    setTimeout(checkSelection,180);
+  }
+}
+
+function unselect(item){
+  if(locked) return;
+  selected=selected.filter(x=>x!==item);
+  render();
+}
+
+function setMessage(text,type=''){
+  message.textContent=text;
+  message.className='message '+type;
+}
+
+function checkSelection(){
+  const ids=selected.map(x=>groupForItem.get(x));
+  const correct=ids.every(id=>id===ids[0]) && !solvedIds.includes(ids[0]);
+
+  if(correct){
+    const g=PUZZLE.groups.find(x=>x.id===ids[0]);
+    solvedIds.push(g.id);
+    remaining=remaining.filter(x=>!g.items.includes(x));
+    selected=[];
+
+    const card=document.createElement('div');
+    card.className='solved-card';
+    card.innerHTML=`<strong>${g.category}</strong><span>${g.items.join(' • ')}</span>`;
+    solved.appendChild(card);
+
+    setMessage('CORRECT','good');
+    locked=false;
+    render();
+
+    if(solvedIds.length===4){
+      document.getElementById('finish-title').textContent='🎸 YOU GOT ’EM ALL';
+      document.getElementById('win-copy').textContent='PUZZLE '+PUZZLE.id+' SOLVED';
+      win.classList.remove('hidden');
+      document.querySelector('.controls').classList.add('hidden');
+    }
+  } else {
+    mistakes++;
+    setMessage('NOT A GROUP','bad');
+    selected=[];
+    locked=false;
+    render();
+
+    if(mistakes>=PUZZLE.maxMistakes){
+      setMessage('OUT OF MISTAKES','bad');
+      locked=true;
+      setTimeout(revealRemaining,450);
+    } else {
+      setTimeout(()=>{if(message.textContent==='NOT A GROUP') setMessage('');},800);
+    }
+  }
+}
+
+function revealRemaining(){
+  PUZZLE.groups.filter(g=>!solvedIds.includes(g.id)).forEach(g=>{
+    const card=document.createElement('div');
+    card.className='solved-card';
+    card.innerHTML=`<strong>${g.category}</strong><span>${g.items.join(' • ')}</span>`;
+    solved.appendChild(card);
+  });
+  board.innerHTML='';
+  tray.innerHTML='';
+  document.querySelector('.controls').classList.add('hidden');
+  document.getElementById('finish-title').textContent='🎸 END OF THE SET';
+  document.getElementById('win-copy').textContent='PUZZLE '+PUZZLE.id+' • TRY ANOTHER';
+  win.classList.remove('hidden');
+}
+
+document.getElementById('shuffle').onclick=()=>{
+  if(locked)return;
+  remaining=shuffleArray([...remaining]);
+  render();
+  setMessage('SHUFFLED');
+  setTimeout(()=>{if(message.textContent==='SHUFFLED')setMessage('')},500);
+};
+
+document.getElementById('clear').onclick=()=>{
+  if(locked)return;
+  selected=[];
+  render();
+  setMessage('');
+};
+
+function normalizeTheme(theme){
+  const t=theme.trim().toLowerCase();
+  if(['ocean','ocean life','sea','marine'].some(k=>t===k||t.includes(k))) return 'OCEAN LIFE';
+  if(['80s movies','1980s movies','eighties movies','movies'].some(k=>t===k||t.includes(k))) return '80S MOVIES';
+  if(['star trek','trek'].some(k=>t===k||t.includes(k))) return 'STAR TREK';
+  if(['baseball','mlb'].some(k=>t===k||t.includes(k))) return 'BASEBALL';
+  if(['space','astronomy','solar system'].some(k=>t===k||t.includes(k))) return 'SPACE';
+  return null;
+}
+
+function getNextPuzzle(theme){
+  const list=PUZZLE_LIBRARY[theme];
+  if(!list || !list.length) return null;
+  if(theme!==currentTheme){ currentPuzzleIndex=0; return structuredClone(list[0]); }
+  currentPuzzleIndex=(currentPuzzleIndex+1)%list.length;
+  return structuredClone(list[currentPuzzleIndex]);
+}
+
+function openRemix(){
+  const remix=document.getElementById('remix');
+  remix.classList.remove('hidden');
+  document.getElementById('theme').value='';
+  document.getElementById('builder-message').textContent='';
+  setTimeout(()=>document.getElementById('theme').focus(),80);
+  remix.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+document.getElementById('remix-open').onclick=openRemix;
+document.getElementById('remix-cancel').onclick=()=>document.getElementById('remix').classList.add('hidden');
+document.getElementById('theme').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('remix-play').click();});
+
+document.getElementById('remix-play').onclick=()=>{
+  const msg=document.getElementById('builder-message');
+  const theme=document.getElementById('theme').value.trim();
+  if(!theme){msg.textContent='GIVE ME A THEME FIRST.';return;}
+  const normalized=normalizeTheme(theme);
+  if(!normalized){
+    msg.textContent='THIS RELEASE INCLUDES OCEAN LIFE, 80S MOVIES, STAR TREK, BASEBALL, AND SPACE. SNAG THE STARTER TO BUILD YOUR OWN UNIVERSE.';
+    return;
+  }
+  msg.textContent='REMIXING…';
+  setTimeout(()=>{ currentTheme=normalized; currentPuzzleIndex=0; loadPuzzle(structuredClone(PUZZLE_LIBRARY[currentTheme][0])); },350);
+};
+
+function loadPuzzle(p){
+  PUZZLE=p;
+  validatePuzzle(PUZZLE);
+  groupForItem=new Map();
+  PUZZLE.groups.forEach(g=>g.items.forEach(item=>groupForItem.set(item,g.id)));
+  remaining=shuffleArray(PUZZLE.groups.flatMap(g=>g.items));
+  selected=[]; solvedIds=[]; mistakes=0; locked=false;
+  solved.innerHTML=''; setMessage(''); win.classList.add('hidden'); document.getElementById('finish-title').textContent='🎸 YOU GOT ’EM ALL'; document.getElementById('remix').classList.add('hidden');
+  document.querySelector('.controls').classList.remove('hidden');
+  document.getElementById('shuffle').disabled=false; document.getElementById('clear').disabled=false;
+  document.querySelector('.title').textContent=PUZZLE.universe;
+  const isRock=currentTheme==='1970S CLASSIC ROCK';
+  document.querySelector('.sub').textContent=(isRock?'PUZZLE '+PUZZLE.id:'YOUR REMIX • PUZZLE '+PUZZLE.id)+' • FIND FOUR THAT BELONG TOGETHER';
+  document.getElementById('footer').textContent='CTRL ALT MAKE • '+PUZZLE.universe+' • PUZZLE '+PUZZLE.id;
+  document.getElementById('win-copy').textContent='PUZZLE '+PUZZLE.id+' SOLVED';
+  render(); window.scrollTo({top:0,behavior:'smooth'});
+}
+
+document.getElementById('play-again').onclick=()=>{
+  const next=getNextPuzzle(currentTheme);
+  if(next) loadPuzzle(next);
+};
+
+render();
+</script>
+</body>
+</html>
